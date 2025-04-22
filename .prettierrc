@@ -1,0 +1,25 @@
+{
+  "semi": true,
+  "singleQuote": false,
+  "arrowParens": "avoid",
+  "endOfLine": "auto",
+  "trailingComma": "none",
+  "tabWidth": 2,
+  "importOrder": [
+    "<THIRD_PARTY_MODULES>",
+    "^@/modules/(.*)$",
+    "^@/config/(.*)$",
+    "^@/guards/(.*)$",
+    "^@/decorators/(.*)$",
+    "^@/exception-filters/(.*)$",
+    "^@/middlewares/(.*)$",
+    "^@/common/(.*)$",
+    "^@/strategies/(.*)$",
+    "^../(.*)$",
+    "^./(.*)$"
+  ],
+  "importOrderSeparation": true,
+  "importOrderSortSpecifiers": true,
+  "importOrderParserPlugins": ["typescript", "decorators-legacy"],
+  "plugins": ["@trivago/prettier-plugin-sort-imports"]
+}

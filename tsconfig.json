@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "es2017",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./src",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "forceConsistentCasingInFileNames": false,
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@/modules/*": ["modules/*"],
+      "@/config/*": ["config/*"],
+      "@/guards/*": ["guards/*"],
+      "@/decorators/*": ["decorators/*"],
+      "@/middlewares/*": ["middlewares/*"],
+      "@/exception-filters/*": ["exception-filters/*"],
+      "@/strategies/*": ["strategies/*"],
+      "@/common/*": ["common/*"],
+      "@/logger/*": ["logger/*"]
+    }
+  },
+  "exclude": ["node_modules", "build"],
+  "include": ["./src/**/*.ts"]
+}
