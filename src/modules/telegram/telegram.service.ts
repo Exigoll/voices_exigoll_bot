@@ -1,8 +1,9 @@
 import { InjectBot } from "@grammyjs/nestjs";
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { Bot, Context } from "grammy";
+import { Api, Bot, Context } from "grammy";
 
+import { AiService } from "@/modules/services/ai.service";
 import { SpeechService } from "@/modules/services/speech.service";
 
 @Injectable()
@@ -12,7 +13,8 @@ export class TelegramService {
   constructor(
     @InjectBot() private readonly bot: Bot<Context>,
     private readonly configService: ConfigService,
-    private readonly speechService: SpeechService
+    private readonly speechService: SpeechService,
+    private readonly aiService: AiService
   ) {
     this.botToken = configService.get<string>("TELEGRAM_BOT_TOKEN");
   }
@@ -26,40 +28,56 @@ export class TelegramService {
     let percent = 10;
 
     try {
-      const file = await ctx.getFile();
+      const file = await ctx.api.getFile(voice.file_id); // <<< ЗАМЕНЕНО
       await ctx.reply(`Длина голосового сообщения: ${duration} сек.`);
 
       const progressMsg = await ctx.reply(this.renderProgress(percent));
-      const progressMessageId = progressMsg.message_id;
+      progressMessageId = progressMsg.message_id;
 
       interval = setInterval(
         async () => {
           if (percent < 90) {
             percent += 5;
-            await ctx.api.editMessageText(
+            await this.updateProgress(
+              ctx.api,
               ctx.chat.id,
               progressMessageId,
-              this.renderProgress(percent)
+              percent
             );
           }
         },
-        duration > 300 ? duration * 8 : 2000
+        duration > 300 ? 3000 : 2000
       );
 
       const transcription = await this.speechService.transcribeVoice(
         file.file_path
       );
 
-      console.log("Transcription:", transcription);
+      const { cost, timestamps } = await this.aiService.generateTimestamps(
+        transcription,
+        duration
+      );
 
-      //clearInterval(interval);
+      clearInterval(interval);
+
+      await this.updateProgress(ctx.api, ctx.chat.id, progressMessageId, 100);
+
+      await ctx.reply(`Тайм-коды: \n\n${timestamps}`);
+      await ctx.reply(cost);
     } catch (err) {
       clearInterval(interval);
       console.error("Ошибка при обработке голосового:", err.message);
       await ctx.reply("Произошла ошибка при обработке голосового.");
     }
+  }
 
-    console.log("Voice message duration:", duration);
+  private async updateProgress(
+    api: Api,
+    chatId: number,
+    messageId: number,
+    percent: number
+  ) {
+    await api.editMessageText(chatId, messageId, this.renderProgress(percent));
   }
 
   private renderProgress(percent: number): string {

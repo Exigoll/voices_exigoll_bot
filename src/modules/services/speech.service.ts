@@ -17,12 +17,14 @@ export class SpeechService {
 
   async transcribeVoice(filePath: string): Promise<string> {
     const fileUrl = `${TELEGRAM_API}/file/bot${this.botToken}/${filePath}`;
-    const fileResponse = await axios.get(fileUrl, {
-      responseType: "stream"
+    const fileResponse = await axios.get<ArrayBuffer>(fileUrl, {
+      responseType: "arraybuffer" // <<< изменили тут на arraybuffer
     });
 
     const formData = new FormData();
-    formData.append("file", fileResponse.data, { filename: "audio.ogg" });
+    formData.append("file", Buffer.from(fileResponse.data), {
+      filename: "audio.ogg"
+    });
     formData.append("model", "whisper-1");
 
     const response = await axios.post<{ text: string }>(
