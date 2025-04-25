@@ -7,8 +7,8 @@ import * as cookieParser from "cookie-parser";
 
 import { AppModule } from "@/modules/app/app.module";
 
-import { configCors } from "@/config/cors.config";
-import { createValidationException } from "@/config/exception.config";
+import { getCorsConfig } from "@/config/cors.config";
+import { getValidationExceptionConfig } from "@/config/exception.config";
 
 import { HttpExceptionFilter } from "@/exception-filters/http.exception-filter";
 
@@ -16,77 +16,61 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ["error", "warn", "log", "verbose", "debug"]
   });
-  const configService = app.get(ConfigService);
+
+  const config = app.get(ConfigService);
   const logger = app.get(Logger);
-  const environment = configService.get<string>("NODE_ENV") || "development";
-  const port = configService.get<number>("SERVER_PORT");
-  const corsConfig = configCors(environment).origin;
+  const env = config.get<string>("NODE_ENV") ?? "development";
+  const port = config.get<number>("SERVER_PORT") ?? 3000;
+  const cors = getCorsConfig(env).origin;
 
-  // Настройки глобального приложения
-  configureApp(app, environment);
+  configureApp(app, env, cors);
 
-  // Запуск приложения
   try {
     await app.listen(port);
-    // Логгирование настроек
-    serverLogsConfig(logger, environment, corsConfig, port);
+    logServerConfig(logger, env, cors, port);
   } catch (error) {
     logger.error(`Failed to start application: ${error.message}`);
     process.exit(1);
   }
 }
 
-function serverLogsConfig(
+function logServerConfig(
   logger: Logger,
-  environment: string,
-  corsConfig: string[],
+  env: string,
+  cors: string[],
   port: number
 ) {
-  logger.verbose(`.env: ${environment}`, "serverLogsConfig");
-  logger.verbose(`CORS: ${JSON.stringify(corsConfig)}`, "serverLogsConfig");
-  logger.verbose(`port: ${port}`, "serverLogsConfig");
+  logger.verbose(`.env: ${env}`, "serverLogs");
+  logger.verbose(`CORS: ${JSON.stringify(cors)}`, "serverLogs");
+  logger.verbose(`port: ${port}`, "serverLogs");
 }
 
-function configureApp(app: INestApplication, environment: string) {
-  // Подключение Swagger
-  const config = new DocumentBuilder()
+function configureApp(app: INestApplication, env: string, cors: string[]) {
+  const swagger = new DocumentBuilder()
     .setTitle("API")
     .setDescription("API documentation")
     .setVersion("1.0")
     .addBearerAuth()
     .build();
-  const document = SwaggerModule.createDocument(app, config);
+
+  const document = SwaggerModule.createDocument(app, swagger);
   SwaggerModule.setup("api", app, document);
 
-  // Подключение глобального префикса
   app.setGlobalPrefix("api");
-
-  // Включение CORS
-  const corsConfig = configCors(environment).origin;
-  app.enableCors({ origin: corsConfig });
-
-  // Подключение middleware
+  app.enableCors({ origin: cors });
   app.use(cookieParser());
-
-  // Подключение валидации
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      disableErrorMessages: environment === "production",
-      exceptionFactory: createValidationException
+      disableErrorMessages: env === "production",
+      exceptionFactory: getValidationExceptionConfig
     })
   );
 
-  // Фильтры исключений
-  const loggerInstance = app.get(Logger);
-  app.useGlobalFilters(new HttpExceptionFilter(loggerInstance));
-
-  // WebSocket адаптер
+  app.useGlobalFilters(new HttpExceptionFilter(app.get(Logger)));
   app.useWebSocketAdapter(new IoAdapter(app));
-
-  // Shutdown hooks для корректного завершения
   app.enableShutdownHooks();
 }
 

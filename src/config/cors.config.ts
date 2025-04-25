@@ -1,4 +1,4 @@
-export function configCors(nodeEnv: string) {
+export function getCorsConfig(nodeEnv: string) {
   const isProduction = nodeEnv === "production";
   const allowedOrigins = isProduction
     ? ["https://example.ru", "https://www.example.ru"]

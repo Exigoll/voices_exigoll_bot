@@ -1,4 +1,6 @@
 .env*
+INFO.MD
+
 
 # compiled output
 /dist
